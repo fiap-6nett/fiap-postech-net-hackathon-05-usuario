@@ -13,9 +13,14 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
+        <Content Include="..\.dockerignore">
+            <Link>.dockerignore</Link>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\FastTech.Usuarios.Application\FastTech.Usuarios.Application.csproj"/>
+        <ProjectReference Include="..\FastTech.Usuarios.Domain\FastTech.Usuarios.Domain.csproj"/>
     </ItemGroup>
 
 </Project>
