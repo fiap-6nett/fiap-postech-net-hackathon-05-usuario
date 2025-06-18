@@ -3,5 +3,5 @@
 public class TokensCommand
 {
     public string User { get; set; }
-    public string Password { get; set; }
+    public string PasswordBase64 { get; set; }
 }
