@@ -29,7 +29,7 @@ public class UserService : IUserService
     /// <param name="passwordBase64"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public Task<string> GenerateTokenAsync(string name, string passwordBase64)
+    public async Task<TokenPairDto> GenerateTokenAsync(string name, string passwordBase64)
     {
         try
         {
@@ -38,8 +38,10 @@ public class UserService : IUserService
             {
                 // Simulating an admin user
                 var tokenPair = GenerateTokenJwt(Guid.NewGuid(), true, UserRole.Admin);
-                return Task.FromResult(tokenPair.AccessToken);
+                return tokenPair;
             }
+            // Caso as credenciais estejam incorretas
+            throw new UnauthorizedAccessException("Invalid credentials.");
         }
         catch (Exception e)
         {
@@ -47,8 +49,6 @@ public class UserService : IUserService
             _logger.LogError(message);
             throw new Exception(message);
         }
-
-        throw new NotImplementedException();
     }
 
 
@@ -90,12 +90,10 @@ public class UserService : IUserService
             );
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(jwtToken);
-            var refreshToken = GenerateRefreshTokenJwt(id);
 
             return new TokenPairDto
             {
                 AccessToken = accessToken,
-                RefreshToken = refreshToken,
                 ExpiresAt = expires
             };
         }
@@ -106,42 +104,5 @@ public class UserService : IUserService
             throw new Exception(message);
         }
     }
-
-    /// <summary>
-    ///     Generates a refresh JWT token for the user.
-    /// </summary>
-    /// <param name="id"></param>
-    /// <returns></returns>
-    private string GenerateRefreshTokenJwt(Guid id)
-    {
-        try
-        {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_identitySettings.SecretKey));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var claims = new[]
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-            };
-
-            var expires = DateTime.UtcNow.AddMinutes(_identitySettings.AccessRefreshTokenMinutes);
-
-            var jwt = new JwtSecurityToken(
-                _identitySettings.Issuer,
-                _identitySettings.Audience,
-                claims,
-                expires: expires,
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(jwt);
-        }
-        catch (Exception e)
-        {
-            var message = $"Error generating refresh token for user {id}: {e.Message}";
-            _logger.LogError(message);
-            throw new Exception(message);
-        }
-    }
+    
 }

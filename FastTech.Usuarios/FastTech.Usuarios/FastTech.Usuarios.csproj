@@ -4,7 +4,9 @@
         <TargetFramework>net8.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <NoWarn>$(NoWarn);1591</NoWarn> <!-- Silencia warnings de falta de comentário -->
     </PropertyGroup>
 
     <ItemGroup>

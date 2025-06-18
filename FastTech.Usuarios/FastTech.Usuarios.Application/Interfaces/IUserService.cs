@@ -1,6 +1,8 @@
-﻿namespace FastTech.Usuarios.Application.Interfaces;
+﻿using FastTech.Usuarios.Domain.Dtos;
+
+namespace FastTech.Usuarios.Application.Interfaces;
 
 public interface IUserService
 {
-    Task<string> GenerateTokenAsync(string name, string passwordBase64);
+    Task<TokenPairDto> GenerateTokenAsync(string name, string passwordBase64);
 }

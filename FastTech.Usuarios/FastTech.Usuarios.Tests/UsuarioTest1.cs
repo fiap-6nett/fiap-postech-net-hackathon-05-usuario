@@ -71,8 +71,8 @@ public class UsuarioTest1
         var token = await userService.GenerateTokenAsync(username, passwordBase64);
 
         // Assert
-        Assert.False(string.IsNullOrWhiteSpace(token));
-        Assert.Contains(".", token); // simples validação de estrutura JWT
+        Assert.False(string.IsNullOrWhiteSpace(token.AccessToken));
+        Assert.Contains(".", token.AccessToken); // simples validação de estrutura JWT
     }
 
     [Fact]
@@ -101,19 +101,19 @@ public class UsuarioTest1
 
         // Decode JWT token
         var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
+        var jwt = handler.ReadJwtToken(token.AccessToken);
 
         var roleClaim = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
         var userIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
 
         // Assert
-        Assert.False(string.IsNullOrWhiteSpace(token));
+        Assert.False(string.IsNullOrWhiteSpace(token.AccessToken));
         Assert.NotNull(roleClaim);
         Assert.NotNull(userIdClaim);
         Assert.Equal(UserRole.Admin.ToString(), roleClaim);
         Assert.True(Guid.TryParse(userIdClaim, out _));
     }
-    
+
     [Fact]
     public async Task GenerateTokenAsync_ValidAdminToken_ShouldContainExpectedClaims()
     {
@@ -137,7 +137,7 @@ public class UsuarioTest1
         // Act
         var token = await userService.GenerateTokenAsync(username, passwordBase64);
         var handler = new JwtSecurityTokenHandler();
-        var jwt = handler.ReadJwtToken(token);
+        var jwt = handler.ReadJwtToken(token.AccessToken);
 
         // Assert
         Assert.NotNull(jwt);
@@ -150,7 +150,7 @@ public class UsuarioTest1
         Assert.Equal(UserRole.Admin.ToString(), roleClaim);
         Assert.True(Guid.TryParse(idClaim, out _));
     }
-    
+
     [Fact]
     public async Task ValidateTokenAsync_WithWrongSecretKey_ShouldFailValidation()
     {
@@ -192,10 +192,6 @@ public class UsuarioTest1
         };
 
         // Assert – deve lançar SecurityTokenInvalidSignatureException
-        Assert.ThrowsAny<SecurityTokenInvalidSignatureException>(() =>
-        {
-            handler.ValidateToken(token, validationParameters, out _);
-        });
+        Assert.ThrowsAny<SecurityTokenInvalidSignatureException>(() => { handler.ValidateToken(token.AccessToken, validationParameters, out _); });
     }
-    
 }
