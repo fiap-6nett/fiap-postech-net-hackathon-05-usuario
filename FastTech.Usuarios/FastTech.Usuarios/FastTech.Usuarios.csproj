@@ -13,6 +13,7 @@
         <PackageReference Include="FluentValidation" Version="12.0.0"/>
         <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0"/>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.16"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4"/>
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
     </ItemGroup>
 
@@ -25,6 +26,7 @@
     <ItemGroup>
         <ProjectReference Include="..\FastTech.Usuarios.Application\FastTech.Usuarios.Application.csproj"/>
         <ProjectReference Include="..\FastTech.Usuarios.Domain\FastTech.Usuarios.Domain.csproj"/>
+        <ProjectReference Include="..\FastTech.Usuarios.Infra\FastTech.Usuarios.Infra.csproj"/>
     </ItemGroup>
 
 </Project>

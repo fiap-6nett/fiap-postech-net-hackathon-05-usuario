@@ -29,7 +29,8 @@ public class AuthController : ControllerBase
     ///     <para>Exemplo:</para>
     ///     <list type="bullet">
     ///         <item>
-    ///             <description>User: <c>admin@admin.com.br</c></description>
+    ///             <description>Email: <c>admin@admin.com.br</c></description>
+    ///             <description>CPF: <c>12345678900</c></description>
     ///         </item>
     ///         <item>
     ///             <description>LoginIdentifierType: <c>1</c> para CPF, <c>2</c> para E-mail</description>

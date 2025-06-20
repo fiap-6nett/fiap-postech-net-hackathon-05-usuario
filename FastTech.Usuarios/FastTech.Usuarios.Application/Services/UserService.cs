@@ -13,49 +13,77 @@ namespace FastTech.Usuarios.Application.Services;
 
 public class UserService : IUserService
 {
+    private readonly IUserCommandStore _commandStore;
     private readonly IdentitySettings _identitySettings;
     private readonly ILogger<UserService> _logger;
 
-    public UserService(ILogger<UserService> logger, IOptions<IdentitySettings> identitySettings)
+    public UserService(IOptions<IdentitySettings> identityOptions, ILogger<UserService> logger, IUserCommandStore commandStore)
     {
-        _identitySettings = identitySettings.Value;
+        _identitySettings = identityOptions.Value;
         _logger = logger;
+        _commandStore = commandStore;
     }
 
     /// <summary>
     ///     Generates a JWT token for the user based on their name and password in base64 format.
     /// </summary>
-    /// <param name="name"></param>
+    /// <param name="user"></param>
     /// <param name="passwordBase64"></param>
     /// <param name="loginIdentifierType"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task<TokenEntity> GenerateTokenAsync(string name, string passwordBase64, LoginIdentifierType loginIdentifierType)
+    public async Task<TokenEntity> GenerateTokenAsync(string user, string passwordBase64, LoginIdentifierType loginIdentifierType)
     {
         try
         {
-            var decodedPassword = Encoding.UTF8.GetString(Convert.FromBase64String(passwordBase64));
-            if (name.Equals("admin@admin.com.br", StringComparison.OrdinalIgnoreCase) && decodedPassword == "admin123")
-            {
-                // Simulating an admin user
-                var tokenPair = GenerateTokenJwt(Guid.NewGuid(), true, UserRole.Admin);
-                return tokenPair;
-            }
+            var plainPassword = Encoding.UTF8.GetString(Convert.FromBase64String(passwordBase64));
 
-            // Caso as credenciais estejam incorretas
-            throw new UnauthorizedAccessException("Invalid credentials.");
+            UserEntity? userEntity = null;
+
+            if (loginIdentifierType == LoginIdentifierType.Email)
+                userEntity = await _commandStore.GetUserByEmailAndPasswordAsync(user);
+            else
+                userEntity = await _commandStore.GetUserByCpfAndPasswordAsync(user);
+
+            if (userEntity is null) throw new UnauthorizedAccessException("Invalid credentials.");
+            var isMatch = BCrypt.Net.BCrypt.Verify(plainPassword, userEntity.PasswordHash);
+            if (!isMatch) throw new UnauthorizedAccessException("Invalid credentials.");
+            // Generate JWT token
+            var token = GenerateTokenJwt(userEntity.Id, userEntity.IsActive, userEntity.Role);
+            return token;
         }
         catch (Exception e)
         {
-            var message = $"Error generating token for user {name}: {e.Message}";
+            var message = $"Error generating token for user {user}: {e.Message}";
             _logger.LogError(message);
             throw new Exception(message);
         }
     }
 
+    /// <summary>
+    ///     Registers a new user in the system with the provided details.
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="cpf"></param>
+    /// <param name="Email"></param>
+    /// <param name="passwordBase64"></param>
+    /// <param name="passwordHash"></param>
+    /// <param name="role"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
     public Task<UserEntity> RegisterUserAsync(string name, string cpf, string Email, string passwordBase64, string passwordHash, UserRole role)
     {
-        throw new NotImplementedException();
+        try
+        {
+            
+            throw new NotImplementedException();
+        }
+        catch (Exception e)
+        {
+            var message = $"Error registering user {name}: {e.Message}";
+            _logger.LogError(message);
+            throw new Exception(message);
+        }
     }
 
 

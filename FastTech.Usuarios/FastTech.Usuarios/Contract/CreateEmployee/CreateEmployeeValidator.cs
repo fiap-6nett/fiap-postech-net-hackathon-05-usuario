@@ -15,7 +15,7 @@ public class CreateEmployeeValidator : AbstractValidator<CreateEmployeeCommand>
 
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("O e-mail é obrigatório.")
-            .EmailAddress().WithMessage("O e-mail informado é inválido.");
+            .Matches(@"^[^@\s]+@[^@\s]+\.[^@\s]+$").WithMessage("O e-mail informado é inválido.");
 
         RuleFor(x => x.Cpf)
             .NotEmpty().WithMessage("O CPF é obrigatório.")
