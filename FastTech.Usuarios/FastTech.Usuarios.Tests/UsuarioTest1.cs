@@ -88,13 +88,10 @@ public class UsuarioTest1
 
         var options = Options.Create(settings);
         var userService = new UserService(options, mockLogger.Object, mockStore.Object);
-
-        var username = "admin@admin.com.br";
-        var password = "admin123";
-        var passwordBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
+        var newId = Guid.NewGuid();
 
         // Act
-        var token = await userService.GenerateTokenAsync(username, passwordBase64, LoginIdentifierType.Cpf);
+        var token = userService.GenerateTokenJwt(newId, UserRole.Admin);
 
         // Assert
         Assert.False(string.IsNullOrWhiteSpace(token.AccessToken));
@@ -128,13 +125,10 @@ public class UsuarioTest1
 
         var options = Options.Create(settings);
         var userService = new UserService(options, mockLogger.Object, mockStore.Object);
-
-        var username = "admin@admin.com.br";
-        var password = "admin123";
-        var passwordBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
+        var newId = Guid.NewGuid();
 
         // Act
-        var token = await userService.GenerateTokenAsync(username, passwordBase64, LoginIdentifierType.Email);
+        var token = userService.GenerateTokenJwt(newId, UserRole.Admin);
 
         // Decode JWT token
         var handler = new JwtSecurityTokenHandler();
@@ -178,13 +172,10 @@ public class UsuarioTest1
 
         var options = Options.Create(settings);
         var userService = new UserService(options, mockLogger.Object, mockStore.Object);
-
-        var username = "admin@admin.com.br";
-        var password = "admin123";
-        var passwordBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
+        var newId = Guid.NewGuid();
 
         // Act
-        var token = await userService.GenerateTokenAsync(username, passwordBase64, LoginIdentifierType.Email);
+        var token = userService.GenerateTokenJwt(newId, UserRole.Admin);
         var handler = new JwtSecurityTokenHandler();
         var jwt = handler.ReadJwtToken(token.AccessToken);
 
@@ -227,11 +218,10 @@ public class UsuarioTest1
         var options = Options.Create(settings);
         var userService = new UserService(options, mockLogger.Object, mockStore.Object);
 
-        var username = "admin@admin.com.br";
-        var passwordBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("admin123"));
+        var newId = Guid.NewGuid();
 
         // Gera token com chave correta
-        var token = await userService.GenerateTokenAsync(username, passwordBase64, LoginIdentifierType.Email);
+        var token = userService.GenerateTokenJwt(newId, UserRole.Admin);
 
         // Configuração usada para VALIDAR (com chave incorreta)
         var invalidKey = "hZLMzfmJvm2YUF0VeCMDZ3n6sSU9LS1lV5L"; // Chave incorreta
@@ -251,6 +241,59 @@ public class UsuarioTest1
 
         // Assert – deve lançar SecurityTokenInvalidSignatureException
         Assert.ThrowsAny<SecurityTokenInvalidSignatureException>(() => { handler.ValidateToken(token.AccessToken, validationParameters, out _); });
+    }
+
+
+    [Fact]
+    public async Task ShouldGenerateAndValidateTokenSuccessfully()
+    {
+        // Arrange
+        var mockLogger = new Mock<ILogger<UserService>>();
+        var mockStore = new Mock<IUserCommandStore>();
+
+        var correctKey = "Ikja1zTw42ZG9SymDttA6Dly1kL0uZ7g2dwvdR7ZeLFnKQn5B9";
+        var issuer = "FastTech.Usuarios";
+        var audience = "FastTech.Usuarios.API";
+
+        var settings = new IdentitySettings
+        {
+            Issuer = issuer,
+            Audience = audience,
+            SecretKey = correctKey,
+            AccessTokenMinutes = 60,
+            AccessRefreshTokenMinutes = 43200
+        };
+
+        var options = Options.Create(settings);
+        var userService = new UserService(options, mockLogger.Object, mockStore.Object);
+
+        var userId = Guid.NewGuid();
+        var token = userService.GenerateTokenJwt(userId, UserRole.Admin);
+
+        var handler = new JwtSecurityTokenHandler();
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ClockSkew = TimeSpan.FromMinutes(5),
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(correctKey)),
+            RoleClaimType = ClaimTypes.Role,
+            NameClaimType = ClaimTypes.NameIdentifier
+        };
+
+        // Act
+        var principal = handler.ValidateToken(token.AccessToken, validationParameters, out var validatedToken);
+
+        // Assert
+        Assert.NotNull(principal);
+        // Assert
+        Assert.NotNull(principal);
+        Assert.Equal(userId.ToString(), principal.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        Assert.Equal("Admin", principal.FindFirst(ClaimTypes.Role)?.Value);
     }
 
     [Fact]

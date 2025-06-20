@@ -6,7 +6,7 @@ public class GetUserByIdValidator : AbstractValidator<GetUserByIdQuery>
 {
     public GetUserByIdValidator()
     {
-        RuleFor(x => x.Id)
+        RuleFor(x => x.TargetUserId)
             .NotEmpty().WithMessage("O ID do usuário é obrigatório.")
             .Must(BeAValidGuid).WithMessage("O ID fornecido não é um GUID válido.");
     }

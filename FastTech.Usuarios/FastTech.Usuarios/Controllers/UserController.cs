@@ -1,10 +1,13 @@
-﻿using FastTech.Usuarios.Application.Interfaces;
+﻿using System.Security.Claims;
+using FastTech.Usuarios.Application.Interfaces;
 using FastTech.Usuarios.Contract.CreateClient;
 using FastTech.Usuarios.Contract.CreateEmployee;
 using FastTech.Usuarios.Contract.DeleteUser;
 using FastTech.Usuarios.Contract.GetUserById;
 using FastTech.Usuarios.Contract.UpdateUser;
+using FastTech.Usuarios.Domain.Enums;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FastTech.Usuarios.Controllers;
@@ -45,22 +48,36 @@ public class UserController : ControllerBase
         try
         {
             await _validatorCreateClientCommand.ValidateAndThrowAsync(payload);
-            //var result = await _userService.CriarClienteAsync(cliente);
-            //return CreatedAtAction(nameof(GetUserById), new { id = result.Id }, result);
+            var result = await _userService.RegisterUserAsync(payload.Name, payload.Cpf, payload.Email, payload.PasswordBase64, UserRole.Customer);
 
-            return Ok(true);
+            var commandResult = new CreateClientCommandResult
+            {
+                Id = result.Id,
+                Name = result.Name,
+                Cpf = result.Cpf,
+                Email = result.Email,
+                Role = result.Role
+            };
+            return new OkObjectResult(commandResult);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            var message = "Failed to create client. Error: {ex.Message}";
+            _logger.LogError(message);
+            return new BadRequestObjectResult(new
+            {
+                error = message,
+                details = ex.Message
+            });
         }
     }
 
     /// <summary>
     ///     Cadastra um novo funcionário (ex: atendente, gerente).
     /// </summary>
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("funcionarios")]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(CreateEmployeeCommandResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -69,15 +86,28 @@ public class UserController : ControllerBase
         try
         {
             await _validatorCreateEmployeeCommand.ValidateAndThrowAsync(payload);
+            var result = await _userService.RegisterUserAsync(payload.Name, payload.Cpf, payload.Email, payload.PasswordBase64, payload.Role);
 
-            //var result = await _usuarioService.CriarFuncionarioAsync(funcionario);
-            //return CreatedAtAction(nameof(GetUserById), new { id = result.Id }, result);
-            return Ok(true);
+            var commandResult = new CreateEmployeeCommandResult
+            {
+                Id = result.Id,
+                Name = result.Name,
+                Cpf = result.Cpf,
+                Email = result.Email,
+                Role = result.Role
+            };
+
+            return new OkObjectResult(commandResult);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            var message = "Failed to create employee. Error: {ex.Message}";
+            _logger.LogError(message);
+            return new BadRequestObjectResult(new
+            {
+                error = message,
+                details = ex.Message
+            });
         }
     }
 
@@ -85,25 +115,44 @@ public class UserController : ControllerBase
     ///     Obtém os dados de um usuário específico.
     /// </summary>
     /// <param name="id">ID do usuário</param>
+    [Authorize]
     [HttpGet("{id}")]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(GetUserByIdResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(Guid id)
     {
         try
         {
-            var payload = new GetUserByIdQuery { Id = id };
+            var payload = new GetUserByIdQuery { TargetUserId = id };
+            payload.RequestingUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            payload.RequestingUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
             await _validatorGetUserByIdQuery.ValidateAndThrowAsync(payload);
 
-            return Ok(true);
-            return NotFound();
+            var usuario = await _userService.GetUserByIdAsync(payload.TargetUserId, payload.RequestingUserId, payload.RequestingUserRole);
 
-            //return Ok(usuario);
+            if (usuario is null) return NotFound();
+            var result = new GetUserByIdResult
+            {
+                Id = usuario.Id,
+                Name = usuario.Name,
+                Cpf = usuario.Cpf,
+                Email = usuario.Email,
+                Role = usuario.Role,
+                IsActive = usuario.IsActive
+            };
+            return new OkObjectResult(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            var message = "Failed to retrieve user with ID {id}. Error: {ex.Message}";
+            _logger.LogError(message);
+            return new BadRequestObjectResult(new
+            {
+                error = message,
+                details = ex.Message
+            });
         }
     }
 
@@ -111,7 +160,9 @@ public class UserController : ControllerBase
     ///     Atualiza os dados de um usuário existente.
     /// </summary>
     /// <param name="id">ID do usuário</param>
+    [Authorize]
     [HttpPut("{id}")]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(UpdateUserCommandResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -121,13 +172,18 @@ public class UserController : ControllerBase
         {
             payload.Id = id;
             await _validatorUpdateUserCommand.ValidateAndThrowAsync(payload);
-            return Ok(true);
+            return new OkObjectResult(true);
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            var message = "Failed to update user with ID {id}. Error: {ex.Message}";
+            _logger.LogError(message);
+            return new BadRequestObjectResult(new
+            {
+                error = message,
+                details = ex.Message
+            });
         }
     }
 
@@ -135,7 +191,9 @@ public class UserController : ControllerBase
     ///     Exclui um usuário (por gerente ou o próprio usuário, se for cliente).
     /// </summary>
     /// <param name="id">ID do usuário</param>
+    [Authorize]
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(DeleteUserCommandResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -145,15 +203,20 @@ public class UserController : ControllerBase
         {
             var payload = new DeleteUserCommand { Id = id };
             await _validatorDeleteUserCommand.ValidateAndThrowAsync(payload);
-            return Ok(true);
+            return new OkObjectResult(true);
             return NotFound();
 
             return NoContent();
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            var message = $"Failed to delete user with ID {id}. Error: {ex.Message}";
+            _logger.LogError(message);
+            return new BadRequestObjectResult(new
+            {
+                error = message,
+                details = ex.Message
+            });
         }
     }
 }

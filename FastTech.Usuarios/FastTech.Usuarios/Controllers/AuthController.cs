@@ -57,7 +57,7 @@ public class AuthController : ControllerBase
         {
             await _validatorTokensCommand.ValidateAndThrowAsync(payload);
             var token = await _userService.GenerateTokenAsync(payload.User, payload.PasswordBase64, payload.LoginIdentifierType);
-            return Ok(new TokensCommandResult
+            return new OkObjectResult(new TokensCommandResult
             {
                 AccessToken = token.AccessToken,
                 AccessTokenExpiresAt = token.ExpiresAt
@@ -65,8 +65,13 @@ public class AuthController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            var message = "Erro ao gerar token: {ex.Message}";
+            _logger.LogError(message);
+            return new BadRequestObjectResult(new
+            {
+                error = message,
+                details = ex.Message
+            });
         }
     }
 }

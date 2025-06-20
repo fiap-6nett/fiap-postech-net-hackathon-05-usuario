@@ -122,4 +122,14 @@ public class UserEntity : BaseEntity
             return false;
         }
     }
+
+    /// <summary>
+    ///     Remove todos os caracteres que não são dígitos de uma string.
+    /// </summary>
+    /// <param name="value">Texto de entrada, como CPF, CNPJ ou número de telefone.</param>
+    /// <returns>Somente os dígitos numéricos.</returns>
+    public static string SomenteNumeros(string value)
+    {
+        return new string(value?.Where(char.IsDigit).ToArray());
+    }
 }

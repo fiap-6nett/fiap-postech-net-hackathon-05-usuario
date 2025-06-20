@@ -49,7 +49,7 @@ public class UserService : IUserService
             var isMatch = BCrypt.Net.BCrypt.Verify(plainPassword, userEntity.PasswordHash);
             if (!isMatch) throw new UnauthorizedAccessException("Invalid credentials.");
             // Generate JWT token
-            var token = GenerateTokenJwt(userEntity.Id, userEntity.IsActive, userEntity.Role);
+            var token = GenerateTokenJwt(userEntity.Id, userEntity.Role);
             return token;
         }
         catch (Exception e)
@@ -65,18 +65,47 @@ public class UserService : IUserService
     /// </summary>
     /// <param name="name"></param>
     /// <param name="cpf"></param>
-    /// <param name="Email"></param>
+    /// <param name="email"></param>
     /// <param name="passwordBase64"></param>
-    /// <param name="passwordHash"></param>
     /// <param name="role"></param>
-    /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
-    public Task<UserEntity> RegisterUserAsync(string name, string cpf, string Email, string passwordBase64, string passwordHash, UserRole role)
+    /// <returns>UserEntity</returns>
+    public async Task<UserEntity> RegisterUserAsync(string name, string cpf, string email, string passwordBase64, UserRole role)
     {
         try
         {
-            
-            throw new NotImplementedException();
+            var plainPassword = Encoding.UTF8.GetString(Convert.FromBase64String(passwordBase64));
+            cpf = UserEntity.SomenteNumeros(cpf);
+            name = name.ToUpper();
+            email = email.ToUpper();
+
+            if (!UserEntity.IsValidCpf(cpf))
+                throw new ArgumentException("Invalid CPF format.");
+
+            var userExists = _commandStore.ExistsByEmailOrCpfAsync(email, cpf).GetAwaiter().GetResult();
+
+            if (userExists)
+            {
+                var message = $"User with CPF {cpf} or Email {email} already exists.";
+                _logger.LogError(message);
+                throw new ArgumentException(message);
+            }
+
+            var user = new UserEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Cpf = cpf,
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword),
+                Role = role,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                LastUpdatedAt = DateTime.UtcNow
+            };
+
+            await _commandStore.CreateUserAsync(user);
+
+            return user;
         }
         catch (Exception e)
         {
@@ -88,13 +117,12 @@ public class UserService : IUserService
 
 
     /// <summary>
-    ///     Generates a JWT token pair (AccessToken and RefreshToken) for the user.
+    ///     Generates a JWT token for the user based on their ID and role.
     /// </summary>
     /// <param name="id"></param>
-    /// <param name="isActive"></param>
     /// <param name="role"></param>
     /// <returns></returns>
-    private TokenEntity GenerateTokenJwt(Guid id, bool isActive, UserRole role)
+    public TokenEntity GenerateTokenJwt(Guid id, UserRole role)
     {
         try
         {
@@ -104,17 +132,15 @@ public class UserService : IUserService
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_identitySettings.SecretKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Claims do usuário
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
                 new Claim(JwtRegisteredClaimNames.UniqueName, id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, id.ToString()),
                 new Claim(ClaimTypes.Role, role.ToString()),
-                new Claim("IsActive", isActive.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            // Token JWT (AccessToken)
             var jwtToken = new JwtSecurityToken(
                 _identitySettings.Issuer,
                 _identitySettings.Audience,
@@ -134,7 +160,38 @@ public class UserService : IUserService
         }
         catch (Exception e)
         {
-            var message = e.Message;
+            var message = $"Error generating JWT token for user {id}: {e.Message}";
+            _logger.LogError(message);
+            throw new Exception(message);
+        }
+    }
+
+    /// <summary>
+    ///     Retrieves a user by their ID, ensuring the requesting user has permission to access the data.
+    /// </summary>
+    /// <param name="targetUserId"></param>
+    /// <param name="requestingUserId"></param>
+    /// <param name="requestingUserRole"></param>
+    /// <returns></returns>
+    /// <exception cref="NotImplementedException"></exception>
+    /// <exception cref="Exception"></exception>
+    public Task<UserEntity?> GetUserByIdAsync(Guid targetUserId, string requestingUserId, string requestingUserRole)
+    {
+        try
+        {
+            var requestingGuidUserId = Guid.Parse(requestingUserId);
+            var equals = targetUserId.Equals(requestingGuidUserId);
+
+            if (!equals)
+                if (requestingUserRole != UserRole.Admin.ToString() && requestingUserRole != UserRole.Manager.ToString())
+                    throw new UnauthorizedAccessException("You do not have permission to access this user data.");
+
+            var user = _commandStore.GetUserByIdAsync(targetUserId);
+            return user;
+        }
+        catch (Exception e)
+        {
+            var message = $"Error getting user {requestingUserId}: {e.Message}";
             _logger.LogError(message);
             throw new Exception(message);
         }

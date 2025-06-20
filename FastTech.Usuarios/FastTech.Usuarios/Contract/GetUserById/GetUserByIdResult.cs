@@ -28,14 +28,14 @@ public class GetUserByIdResult
     /// </summary>
     public string Cpf { get; set; }
 
-    /// <summary>
-    ///     Senha do cliente codificada em Base64.
-    ///     <para>Exemplo (Base64 de <c>admin123</c>): <c>YWRtaW4xMjM=</c></para>
-    /// </summary>
-    public string PasswordBase64 { get; set; }
 
     /// <summary>
     ///     Role of the user in the system.
     /// </summary>
     public UserRole Role { get; set; }
+
+    /// <summary>
+    ///     Indicates whether the user account is active.
+    /// </summary>
+    public bool IsActive { get; set; }
 }
