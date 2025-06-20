@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using FastTech.Usuarios.Application.Interfaces;
 using FastTech.Usuarios.Application.Settings;
-using FastTech.Usuarios.Domain.Dtos;
+using FastTech.Usuarios.Domain.Entities;
 using FastTech.Usuarios.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -27,19 +27,21 @@ public class UserService : IUserService
     /// </summary>
     /// <param name="name"></param>
     /// <param name="passwordBase64"></param>
+    /// <param name="loginIdentifierType"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task<TokenPairDto> GenerateTokenAsync(string name, string passwordBase64)
+    public async Task<TokenEntity> GenerateTokenAsync(string name, string passwordBase64, LoginIdentifierType loginIdentifierType)
     {
         try
         {
             var decodedPassword = Encoding.UTF8.GetString(Convert.FromBase64String(passwordBase64));
-            if (name.Equals("admin", StringComparison.OrdinalIgnoreCase) && decodedPassword == "admin123")
+            if (name.Equals("admin@admin.com.br", StringComparison.OrdinalIgnoreCase) && decodedPassword == "admin123")
             {
                 // Simulating an admin user
                 var tokenPair = GenerateTokenJwt(Guid.NewGuid(), true, UserRole.Admin);
                 return tokenPair;
             }
+
             // Caso as credenciais estejam incorretas
             throw new UnauthorizedAccessException("Invalid credentials.");
         }
@@ -51,6 +53,11 @@ public class UserService : IUserService
         }
     }
 
+    public Task<UserEntity> RegisterUserAsync(string name, string cpf, string Email, string passwordBase64, string passwordHash, UserRole role)
+    {
+        throw new NotImplementedException();
+    }
+
 
     /// <summary>
     ///     Generates a JWT token pair (AccessToken and RefreshToken) for the user.
@@ -59,7 +66,7 @@ public class UserService : IUserService
     /// <param name="isActive"></param>
     /// <param name="role"></param>
     /// <returns></returns>
-    private TokenPairDto GenerateTokenJwt(Guid id, bool isActive, UserRole role)
+    private TokenEntity GenerateTokenJwt(Guid id, bool isActive, UserRole role)
     {
         try
         {
@@ -91,7 +98,7 @@ public class UserService : IUserService
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(jwtToken);
 
-            return new TokenPairDto
+            return new TokenEntity
             {
                 AccessToken = accessToken,
                 ExpiresAt = expires
@@ -104,5 +111,4 @@ public class UserService : IUserService
             throw new Exception(message);
         }
     }
-    
 }

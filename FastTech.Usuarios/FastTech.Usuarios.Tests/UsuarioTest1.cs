@@ -63,12 +63,12 @@ public class UsuarioTest1
         var options = Options.Create(identitySettings);
         var userService = new UserService(mockLogger.Object, options);
 
-        var username = "admin";
+        var username = "admin@admin.com.br";
         var password = "admin123";
         var passwordBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
 
         // Act
-        var token = await userService.GenerateTokenAsync(username, passwordBase64);
+        var token = await userService.GenerateTokenAsync(username, passwordBase64, LoginIdentifierType.Cpf);
 
         // Assert
         Assert.False(string.IsNullOrWhiteSpace(token.AccessToken));
@@ -92,12 +92,12 @@ public class UsuarioTest1
         var options = Options.Create(identitySettings);
         var userService = new UserService(mockLogger.Object, options);
 
-        var username = "admin";
+        var username = "admin@admin.com.br";
         var password = "admin123";
         var passwordBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
 
         // Act
-        var token = await userService.GenerateTokenAsync(username, passwordBase64);
+        var token = await userService.GenerateTokenAsync(username, passwordBase64, LoginIdentifierType.Email);
 
         // Decode JWT token
         var handler = new JwtSecurityTokenHandler();
@@ -130,12 +130,12 @@ public class UsuarioTest1
         var options = Options.Create(identitySettings);
         var userService = new UserService(mockLogger.Object, options);
 
-        var username = "admin";
+        var username = "admin@admin.com.br";
         var password = "admin123";
         var passwordBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(password));
 
         // Act
-        var token = await userService.GenerateTokenAsync(username, passwordBase64);
+        var token = await userService.GenerateTokenAsync(username, passwordBase64, LoginIdentifierType.Email);
         var handler = new JwtSecurityTokenHandler();
         var jwt = handler.ReadJwtToken(token.AccessToken);
 
@@ -169,11 +169,11 @@ public class UsuarioTest1
 
         var userService = new UserService(mockLogger.Object, Options.Create(correctSettings));
 
-        var username = "admin";
+        var username = "admin@admin.com.br";
         var passwordBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes("admin123"));
 
         // Gera token com chave correta
-        var token = await userService.GenerateTokenAsync(username, passwordBase64);
+        var token = await userService.GenerateTokenAsync(username, passwordBase64, LoginIdentifierType.Email);
 
         // Configuração usada para VALIDAR (com chave incorreta)
         var invalidKey = "hZLMzfmJvm2YUF0VeCMDZ3n6sSU9LS1lV5L"; // Chave incorreta

@@ -1,20 +1,25 @@
 ﻿using FastTech.Usuarios.Application.Interfaces;
-using FastTech.Usuarios.Domain.Contract.GenerateTokens;
+using FastTech.Usuarios.Contract.GenerateTokens;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FastTech.Usuarios.Controllers;
 
-[Route("api/v1.0/auth")]
+[Route("api/v1.0/[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly ILogger<AuthController> _logger;
     private readonly IUserService _userService;
+    private readonly IValidator<TokensCommand> _validatorTokensCommand;
 
-    public AuthController(ILogger<AuthController> logger, IUserService userService)
+
+    public AuthController(ILogger<AuthController> logger, IUserService userService, IValidator<TokensCommand> validatorTokensCommand)
     {
         _logger = logger;
         _userService = userService;
+        _validatorTokensCommand = validatorTokensCommand;
     }
+
 
     /// <summary>
     ///     Gera tokens de autenticação (access token e refresh token) com base nas credenciais fornecidas.
@@ -24,7 +29,10 @@ public class AuthController : ControllerBase
     ///     <para>Exemplo:</para>
     ///     <list type="bullet">
     ///         <item>
-    ///             <description>User: <c>admin</c></description>
+    ///             <description>User: <c>admin@admin.com.br</c></description>
+    ///         </item>
+    ///         <item>
+    ///             <description>LoginIdentifierType: <c>1</c> para CPF, <c>2</c> para E-mail</description>
     ///         </item>
     ///         <item>
     ///             <description>PasswordBase64: <c>YWRtaW4xMjM=</c> (Base64 de <c>admin123</c>)</description>
@@ -38,7 +46,7 @@ public class AuthController : ControllerBase
     /// <response code="200">Token gerado com sucesso.</response>
     /// <response code="400">Requisição inválida. Dados de entrada ausentes ou malformados.</response>
     /// <response code="500">Erro interno ao processar a requisição.</response>
-    [HttpPost("Token")]
+    [HttpPost("token")]
     [ProducesResponseType(typeof(TokensCommandResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -46,13 +54,12 @@ public class AuthController : ControllerBase
     {
         try
         {
-            var token = await _userService.GenerateTokenAsync(payload.User, payload.PasswordBase64);
-            
-            
+            await _validatorTokensCommand.ValidateAndThrowAsync(payload);
+            var token = await _userService.GenerateTokenAsync(payload.User, payload.PasswordBase64, payload.LoginIdentifierType);
             return Ok(new TokensCommandResult
             {
                 AccessToken = token.AccessToken,
-                AccessTokenExpiresAt = token.ExpiresAt,
+                AccessTokenExpiresAt = token.ExpiresAt
             });
         }
         catch (Exception ex)

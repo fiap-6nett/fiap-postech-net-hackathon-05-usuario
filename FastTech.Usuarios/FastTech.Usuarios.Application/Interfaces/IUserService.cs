@@ -1,8 +1,10 @@
-﻿using FastTech.Usuarios.Domain.Dtos;
+﻿using FastTech.Usuarios.Domain.Entities;
+using FastTech.Usuarios.Domain.Enums;
 
 namespace FastTech.Usuarios.Application.Interfaces;
 
 public interface IUserService
 {
-    Task<TokenPairDto> GenerateTokenAsync(string name, string passwordBase64);
+    Task<TokenEntity> GenerateTokenAsync(string name, string passwordBase64, LoginIdentifierType loginIdentifierType);
+    Task<UserEntity> RegisterUserAsync(string name, string cpf, string Email, string passwordBase64, string passwordHash, UserRole role);
 }
