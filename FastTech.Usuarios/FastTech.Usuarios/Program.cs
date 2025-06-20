@@ -2,6 +2,13 @@ using System.Reflection;
 using FastTech.Usuarios.Application.Interfaces;
 using FastTech.Usuarios.Application.Services;
 using FastTech.Usuarios.Application.Settings;
+using FastTech.Usuarios.Contract.CreateClient;
+using FastTech.Usuarios.Contract.CreateEmployee;
+using FastTech.Usuarios.Contract.DeleteUser;
+using FastTech.Usuarios.Contract.GenerateTokens;
+using FastTech.Usuarios.Contract.GetUserById;
+using FastTech.Usuarios.Contract.UpdateUser;
+using FluentValidation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +31,13 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.Configure<IdentitySettings>(builder.Configuration.GetSection("Identity"));
+
+builder.Services.AddValidatorsFromAssemblyContaining<CreateClientCommand>();
+builder.Services.AddValidatorsFromAssemblyContaining<CreateEmployeeCommand>();
+builder.Services.AddValidatorsFromAssemblyContaining<DeleteUserCommand>();
+builder.Services.AddValidatorsFromAssemblyContaining<TokensCommand>();
+builder.Services.AddValidatorsFromAssemblyContaining<GetUserByIdQuery>();
+builder.Services.AddValidatorsFromAssemblyContaining<UpdateUserCommand>();
 
 var app = builder.Build();
 

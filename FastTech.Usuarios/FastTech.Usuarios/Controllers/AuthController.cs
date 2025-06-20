@@ -50,7 +50,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(TokensCommandResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Post([FromBody] TokensCommand payload)
+    public async Task<IActionResult> GetToken([FromBody] TokensCommand payload)
     {
         try
         {

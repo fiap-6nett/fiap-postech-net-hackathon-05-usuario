@@ -1,5 +1,4 @@
-﻿
-using FastTech.Usuarios.Contract.DeleteUser;
+﻿using FastTech.Usuarios.Contract.DeleteUser;
 using FluentValidation.TestHelper;
 
 namespace FastTech.Usuarios.Tests;

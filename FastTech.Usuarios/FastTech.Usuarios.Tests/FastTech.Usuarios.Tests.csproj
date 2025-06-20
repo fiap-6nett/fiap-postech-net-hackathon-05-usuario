@@ -27,7 +27,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\FastTech.Usuarios.Application\FastTech.Usuarios.Application.csproj"/>
-        <ProjectReference Include="..\FastTech.Usuarios\FastTech.Usuarios.csproj" />
+        <ProjectReference Include="..\FastTech.Usuarios\FastTech.Usuarios.csproj"/>
     </ItemGroup>
 
 </Project>

@@ -1,5 +1,4 @@
-﻿
-using FastTech.Usuarios.Contract.GetUserById;
+﻿using FastTech.Usuarios.Contract.GetUserById;
 using FluentValidation.TestHelper;
 
 namespace FastTech.Usuarios.Tests;

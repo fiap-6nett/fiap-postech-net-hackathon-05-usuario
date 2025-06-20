@@ -21,7 +21,8 @@ public class UserController : ControllerBase
     private readonly IValidator<GetUserByIdQuery> _validatorGetUserByIdQuery;
     private readonly IValidator<UpdateUserCommand> _validatorUpdateUserCommand;
 
-    public UserController(ILogger<UserController> logger, IUserService userService, IValidator<CreateClientCommand> validatorCreateClientCommand, IValidator<CreateEmployeeCommand> validatorCreateEmployeeCommand, IValidator<DeleteUserCommand> validatorDeleteUserCommand, IValidator<GetUserByIdQuery> validatorGetUserByIdQuery, IValidator<UpdateUserCommand> validatorUpdateUserCommand)
+    public UserController(ILogger<UserController> logger, IUserService userService, IValidator<CreateClientCommand> validatorCreateClientCommand, IValidator<CreateEmployeeCommand> validatorCreateEmployeeCommand, IValidator<DeleteUserCommand> validatorDeleteUserCommand,
+        IValidator<GetUserByIdQuery> validatorGetUserByIdQuery, IValidator<UpdateUserCommand> validatorUpdateUserCommand)
     {
         _logger = logger;
         _userService = userService;
@@ -39,11 +40,21 @@ public class UserController : ControllerBase
     [ProducesResponseType(typeof(CreateClientCommandResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateClient([FromBody] CreateClientCommand cliente)
+    public async Task<IActionResult> CreateClient([FromBody] CreateClientCommand payload)
     {
-        //var result = await _userService.CriarClienteAsync(cliente);
-        //return CreatedAtAction(nameof(GetUserById), new { id = result.Id }, result);
-        return Ok(true);
+        try
+        {
+            await _validatorCreateClientCommand.ValidateAndThrowAsync(payload);
+            //var result = await _userService.CriarClienteAsync(cliente);
+            //return CreatedAtAction(nameof(GetUserById), new { id = result.Id }, result);
+
+            return Ok(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 
     /// <summary>
@@ -53,11 +64,21 @@ public class UserController : ControllerBase
     [ProducesResponseType(typeof(CreateEmployeeCommandResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeCommand funcionario)
+    public async Task<IActionResult> CreateEmployee([FromBody] CreateEmployeeCommand payload)
     {
-        //var result = await _usuarioService.CriarFuncionarioAsync(funcionario);
-        //return CreatedAtAction(nameof(GetUserById), new { id = result.Id }, result);
-        return Ok(true);
+        try
+        {
+            await _validatorCreateEmployeeCommand.ValidateAndThrowAsync(payload);
+
+            //var result = await _usuarioService.CriarFuncionarioAsync(funcionario);
+            //return CreatedAtAction(nameof(GetUserById), new { id = result.Id }, result);
+            return Ok(true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 
     /// <summary>
@@ -69,10 +90,21 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(Guid id)
     {
-        return Ok(true);
-        return NotFound();
+        try
+        {
+            var payload = new GetUserByIdQuery { Id = id };
+            await _validatorGetUserByIdQuery.ValidateAndThrowAsync(payload);
 
-        //return Ok(usuario);
+            return Ok(true);
+            return NotFound();
+
+            //return Ok(usuario);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 
     /// <summary>
@@ -83,10 +115,20 @@ public class UserController : ControllerBase
     [ProducesResponseType(typeof(UpdateUserCommandResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserCommand dto)
+    public async Task<IActionResult> UpdateUser(Guid id, [FromBody] UpdateUserCommand payload)
     {
-        return Ok(true);
-        return NoContent();
+        try
+        {
+            payload.Id = id;
+            await _validatorUpdateUserCommand.ValidateAndThrowAsync(payload);
+            return Ok(true);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 
     /// <summary>
@@ -99,9 +141,19 @@ public class UserController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
-        return Ok(true);
-        return NotFound();
+        try
+        {
+            var payload = new DeleteUserCommand { Id = id };
+            await _validatorDeleteUserCommand.ValidateAndThrowAsync(payload);
+            return Ok(true);
+            return NotFound();
 
-        return NoContent();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to send data to the order queue. Error {ex.Message} - {ex.StackTrace} ");
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 }
