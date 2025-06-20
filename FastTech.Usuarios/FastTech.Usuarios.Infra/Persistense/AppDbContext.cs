@@ -24,7 +24,7 @@ public class AppDbContext : DbContext
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.Cpf).IsRequired();
             entity.Property(e => e.Role).IsRequired();
-            entity.Property(e => e.IsActive).IsRequired().HasDefaultValue(true);
+            entity.Property(e => e.IsAvailable).IsRequired().HasDefaultValue(true);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").ValueGeneratedOnAdd();
             entity.Property(e => e.LastUpdatedAt);
         });

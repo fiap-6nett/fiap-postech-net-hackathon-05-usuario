@@ -43,11 +43,6 @@ public class UserEntity : BaseEntity
     public UserRole Role { get; set; }
 
     /// <summary>
-    ///     Indicates whether the user account is active.
-    /// </summary>
-    public bool IsActive { get; set; }
-
-    /// <summary>
     ///     Timestamp when the user account was created (UTC).
     /// </summary>
     public DateTime CreatedAt { get; set; }

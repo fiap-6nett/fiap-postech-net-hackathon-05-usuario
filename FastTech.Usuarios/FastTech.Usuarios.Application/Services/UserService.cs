@@ -81,6 +81,9 @@ public class UserService : IUserService
             if (!UserEntity.IsValidCpf(cpf))
                 throw new ArgumentException("Invalid CPF format.");
 
+            if (role == UserRole.Admin)
+                throw new UnauthorizedAccessException("Cannot register a user with Admin role directly.");
+
             var userExists = _commandStore.ExistsByEmailOrCpfAsync(email, cpf).GetAwaiter().GetResult();
 
             if (userExists)
@@ -98,7 +101,7 @@ public class UserService : IUserService
                 Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword),
                 Role = role,
-                IsActive = true,
+                IsAvailable = true,
                 CreatedAt = DateTime.UtcNow,
                 LastUpdatedAt = DateTime.UtcNow
             };
@@ -192,6 +195,98 @@ public class UserService : IUserService
         catch (Exception e)
         {
             var message = $"Error getting user {requestingUserId}: {e.Message}";
+            _logger.LogError(message);
+            throw new Exception(message);
+        }
+    }
+
+    /// <summary>
+    ///   Deletes a user from the system, ensuring the requesting user has permission to perform this action.
+    /// </summary>
+    /// <param name="targetUserId"></param>
+    /// <param name="requestingUserId"></param>
+    /// <param name="requestingUserRole"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    /// <exception cref="UnauthorizedAccessException"></exception>
+    /// <exception cref="Exception"></exception>
+    public async Task<UserEntity?> DeleteUserAsync(Guid targetUserId, string requestingUserId, string requestingUserRole)
+    {
+        try
+        {
+            var user = await _commandStore.GetUserByIdAsync(targetUserId);
+
+            if (user is null || !user.IsAvailable)
+                throw new ArgumentException($"User with ID {targetUserId} does not exist.");
+
+            switch (user.Role)
+            {
+                case UserRole.Admin:
+                    throw new UnauthorizedAccessException("You do not have permission to access this user ADMIN.");
+                case UserRole.Customer:
+                {
+                    if (requestingUserRole != UserRole.Admin.ToString() && requestingUserRole != UserRole.Manager.ToString())
+                    {
+                        var requestingGuidUserId = Guid.Parse(requestingUserId);
+                        var equals = targetUserId.Equals(requestingGuidUserId);
+                        if (!equals) throw new UnauthorizedAccessException("You cannot delete your own user account.");
+                    }
+
+                    await _commandStore.DeleteUserAsync(targetUserId);
+                    user.IsAvailable = false;
+                    return user;
+                }
+                case UserRole.Manager:
+                case UserRole.Employee:
+                default:
+                    if (requestingUserRole != UserRole.Admin.ToString() && requestingUserRole != UserRole.Manager.ToString())
+                        throw new UnauthorizedAccessException("You do not have permission to delete this user.");
+
+                    await _commandStore.DeleteUserAsync(targetUserId);
+                    user.IsAvailable = false;
+                    return user;
+            }
+        }
+        catch (Exception e)
+        {
+            var message = $"Error getting user {requestingUserId}: {e.Message}";
+            _logger.LogError(message);
+            throw new Exception(message);
+        }
+    }
+
+    public async Task<UserEntity> UpdateUserAsync(Guid targetUserId, string name, string cpf, string email, string passwordBase64, string requestingUserId, string requestingUserRole)
+    {
+        try
+        {
+            var user = await _commandStore.GetUserByIdAsync(targetUserId);
+            
+            switch (user.Role)
+            {
+                case UserRole.Admin:
+                    throw new UnauthorizedAccessException("You do not have permission to access this user ADMIN.");
+                case UserRole.Customer:
+                    if (requestingUserRole != UserRole.Admin.ToString() && requestingUserRole != UserRole.Manager.ToString())
+                    {
+                        var requestingGuidUserId = Guid.Parse(requestingUserId);
+                        var equals = targetUserId.Equals(requestingGuidUserId);
+                        if (!equals) throw new UnauthorizedAccessException("You cannot delete your own user account.");
+                    }
+                    return user;
+                case UserRole.Manager:
+                case UserRole.Employee:
+                default:
+                    if (requestingUserRole != UserRole.Admin.ToString() && requestingUserRole != UserRole.Manager.ToString())
+                        throw new UnauthorizedAccessException("You do not have permission to delete this user.");
+
+                    await _commandStore.DeleteUserAsync(targetUserId);
+                    user.IsAvailable = false;
+                    return user;
+            }
+        }
+        catch (Exception e)
+        {
+            var message = $"Error updating user {requestingUserId}: {e.Message}";
             _logger.LogError(message);
             throw new Exception(message);
         }

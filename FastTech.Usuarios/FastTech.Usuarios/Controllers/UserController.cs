@@ -140,7 +140,7 @@ public class UserController : ControllerBase
                 Cpf = usuario.Cpf,
                 Email = usuario.Email,
                 Role = usuario.Role,
-                IsActive = usuario.IsActive
+                IsAvailable = usuario.IsAvailable
             };
             return new OkObjectResult(result);
         }
@@ -172,8 +172,10 @@ public class UserController : ControllerBase
         {
             payload.Id = id;
             await _validatorUpdateUserCommand.ValidateAndThrowAsync(payload);
+            
+            
+            
             return new OkObjectResult(true);
-            return NoContent();
         }
         catch (Exception ex)
         {
@@ -203,10 +205,13 @@ public class UserController : ControllerBase
         {
             var payload = new DeleteUserCommand { Id = id };
             await _validatorDeleteUserCommand.ValidateAndThrowAsync(payload);
-            return new OkObjectResult(true);
-            return NotFound();
-
-            return NoContent();
+            
+            await _userService.DeleteUserAsync(payload.Id, User.FindFirst(ClaimTypes.NameIdentifier)?.Value, User.FindFirst(ClaimTypes.Role)?.Value);
+            
+            return new OkObjectResult(new DeleteUserCommandResult
+            {
+                Success = true
+            });
         }
         catch (Exception ex)
         {

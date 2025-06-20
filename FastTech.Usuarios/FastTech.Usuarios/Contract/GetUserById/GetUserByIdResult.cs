@@ -37,5 +37,5 @@ public class GetUserByIdResult
     /// <summary>
     ///     Indicates whether the user account is active.
     /// </summary>
-    public bool IsActive { get; set; }
+    public bool IsAvailable { get; set; }
 }

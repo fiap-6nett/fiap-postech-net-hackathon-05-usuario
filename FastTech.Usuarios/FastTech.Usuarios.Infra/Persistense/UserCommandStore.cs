@@ -29,7 +29,7 @@ public class UserCommandStore : IUserCommandStore
         var user = await _context.UserEntities.FindAsync(id);
         if (user == null) return;
 
-        user.IsActive = false;
+        user.IsAvailable = false;
         user.LastUpdatedAt = DateTime.UtcNow;
 
         _context.UserEntities.Update(user);
@@ -46,19 +46,19 @@ public class UserCommandStore : IUserCommandStore
     public async Task<UserEntity?> GetUserByCpfAndPasswordAsync(string cpf)
     {
         return await _context.UserEntities.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Cpf == cpf && u.IsActive);
+            .FirstOrDefaultAsync(u => u.Cpf == cpf && u.IsAvailable);
     }
 
     public async Task<UserEntity?> GetUserByEmailAndPasswordAsync(string email)
     {
         return await _context.UserEntities.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+            .FirstOrDefaultAsync(u => u.Email == email && u.IsAvailable);
     }
 
     public async Task<bool> ExistsByEmailOrCpfAsync(string email, string cpf)
     {
         return await _context.UserEntities
             .AsNoTracking()
-            .AnyAsync(u => u.IsActive && (u.Email == email || u.Cpf == cpf));
+            .AnyAsync(u => u.IsAvailable && (u.Email == email || u.Cpf == cpf));
     }
 }

@@ -25,7 +25,6 @@ public static class SeedData
                 Cpf = "12345678900",
                 PasswordHash = senhaHash,
                 Role = UserRole.Admin,
-                IsActive = true,
                 IsAvailable = true,
                 CreatedAt = DateTime.UtcNow,
                 LastUpdatedAt = DateTime.UtcNow
